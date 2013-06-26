@@ -203,6 +203,7 @@ module Resque
 
     class << self
       attr_accessor :term_behavior
+      attr_accessor :master_pidfile
     end
 
     def graceful_worker_shutdown_and_wait!(signal)
@@ -295,6 +296,7 @@ module Resque
 
     # TODO: close any file descriptors connected to worker, if any
     def delete_worker(pid)
+      release_index(pid)
       worker = nil
       workers.detect do |queues, pid_to_worker|
         worker = pid_to_worker.delete(pid)
@@ -361,6 +363,8 @@ module Resque
         #self_pipe.each {|io| io.close }
         worker.work(ENV['INTERVAL'] || DEFAULT_WORKER_INTERVAL) # interval, will block
       end
+      reserve_index(pid)
+      save_pidfile(pid)
       workers[queues][pid] = worker
     end
 
@@ -397,6 +401,22 @@ module Resque
       @worker_index ||= {}
       pid = pid.to_s
       @worker_index.delete(pid)
+    end
+
+    def pidfile_path(pid)
+      pid = pid.to_s
+      return nil unless self.class.master_pidfile
+      return nil unless @worker_index && @worker_index[pid]
+
+      "#{self.class.master_pidfile}.worker.#{@worker_index[pid]}"
+    end
+
+    def save_pidfile(pid)
+      pid = pid.to_s
+      pidfile = pidfile_path(pid)
+      return nil unless pidfile
+
+      File.open(pidfile, "w") {|f| f.write pid }
     end
 
   end

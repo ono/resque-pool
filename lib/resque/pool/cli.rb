@@ -113,6 +113,10 @@ where [options] are:
         elsif opts[:term_graceful]
           Resque::Pool.term_behavior = "graceful_worker_shutdown"
         end
+
+        if opts[:pidfile]
+          Resque::Pool.master_pidfile = opts[:pidfile]
+        end
       end
 
       def setup_environment(opts)
