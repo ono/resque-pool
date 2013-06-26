@@ -164,3 +164,29 @@ describe Resque::Pool, "when loading the pool configuration from a file" do
   end
 
 end
+
+describe Resque::Pool do
+  subject { Resque::Pool.new("spec/resque-pool.yml") }
+  describe "#reserve_index" do
+    it "reserves the minimum unreserved index" do
+      subject.reserve_index(23).should == 0
+      subject.reserve_index(52).should == 1
+
+      subject.instance_variable_set(:@worker_index, {
+        "23" => 0,
+        "52" => 4,
+        "45" => 1,
+        "56" => 6 }
+      )
+
+      subject.reserve_index(101).should == 2
+      subject.reserve_index(103).should == 3
+      subject.reserve_index(108).should == 5
+
+      subject.reserve_index(101).should == 2
+
+      subject.release_index(45)
+      subject.reserve_index(114).should == 1
+    end
+  end
+end

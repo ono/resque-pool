@@ -19,6 +19,7 @@ module Resque
     extend  Logging
     attr_reader :config
     attr_reader :workers
+    attr_reader :worker_index
 
     def initialize(config)
       init_config(config)
@@ -374,6 +375,29 @@ module Resque
     end
 
     # }}}
+
+    # Reserve worker index
+    def reserve_index(pid)
+      pid = pid.to_s
+      @worker_index ||= {}
+      return @worker_index[pid] if @worker_index[pid]
+
+      sorted = @worker_index.sort{|a,b| a[1] <=> b[1]}
+      index = 0
+      sorted.each do |item|
+        break if index != item[1]
+        index += 1
+      end
+
+      @worker_index[pid] = index
+    end
+
+    # Release index
+    def release_index(pid)
+      @worker_index ||= {}
+      pid = pid.to_s
+      @worker_index.delete(pid)
+    end
 
   end
 end
